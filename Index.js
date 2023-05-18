@@ -29,6 +29,11 @@ async function run() {
 
     const toysCollection = client.db("kiddieCorner").collection("toys");
 
+    app.get("/allToys", async(req, res)=> {
+      const result = await toysCollection.find().toArray();
+      res.send(result)
+    })
+
     app.post("/addToys", async(req, res)=> {
       const newToys = req.body;
       const result = await toysCollection.insertOne(newToys);
