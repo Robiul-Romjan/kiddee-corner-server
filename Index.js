@@ -24,59 +24,138 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    // await client.connect();
+    await client.connect();
 
-
+    // collection name
     const toysCollection = client.db("kiddieCorner").collection("toys");
 
-    app.get("/allToys", async(req, res)=> {
-      const result = await toysCollection.find().limit(20).toArray();
-      res.send(result)
-    });
+    const indexKeys = { name: 1 };
+    const indexOptions = { title: "nameCategory" };
 
-    app.get("/allToys/:id", async(req, res)=> {
-      const id = req.params.id;
-      // console.log(id);
-      const query = {_id: new ObjectId(id)};
-      const result = await toysCollection.findOne(query);
-      res.send(result);
-    });
+    const result = await toysCollection.createIndex(indexKeys, indexOptions);
+    
+    // search toy by name
+    app.get("/toySearchByName/:text", async (req, res) => {
+      try {
+        const searchText = req.params.text;
+        const result = await toysCollection.find({
+          $or: [
+            { name: { $regex: searchText, $options: "i" } }
+          ],
+        }).toArray();
 
-    app.post("/addToys", async(req, res)=> {
-      const newToys = req.body;
-      const result = await toysCollection.insertOne(newToys);
-      res.send(result);
-    });
-
-    app.get("/userToys", async(req, res)=> {
-      let query = {};
-      if(req.query?.email){
-        query = {email: req.query.email}
+        res.send(result)
+      } catch (error) {
+        res.send(error)
       }
-      const result = await toysCollection.find(query).toArray();
-      res.send(result);
+    })
+
+    // get All toys data
+    app.get("/allToys", async (req, res) => {
+      try {
+        const result = (await toysCollection.find().limit(20).toArray());
+        res.send(result)
+      } catch (error) {
+        res.send(error)
+      }
     });
 
-    app.patch("/userToys/:id", async(req, res)=> {
-      const id = req.params.id;
-      const updateToy = req.body;
-      const filter = {_id: new ObjectId(id)};
-      const updatedToyStatus = {
-        $set: {
-          price : updateToy.price,
-          quantity : updateToy.quantity,
-          detail : updateToy.detail
+    // get single toy data
+    app.get("/allToys/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        // console.log(id);
+        const query = { _id: new ObjectId(id) };
+        const result = await toysCollection.findOne(query);
+        res.send(result);
+      } catch (error) {
+        res.send(error)
+      }
+    });
+
+    // post toy data
+    app.post("/addToys", async (req, res) => {
+      try {
+        const newToys = req.body;
+        const result = await toysCollection.insertOne(newToys);
+        res.send(result);
+      } catch (error) {
+        res.send(error)
+      }
+    });
+
+    // get users all toy data
+    app.get("/userToys", async (req, res) => {
+      try {
+        let query = {};
+        if (req.query?.email) {
+          query = { email: req.query.email }
         }
+        const result = await toysCollection.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        res.send(error)
       }
-      const result = await toysCollection.updateOne(filter, updatedToyStatus);
-      res.send(result)  
     });
 
-    app.delete("/userToys/:id", async(req, res)=> {
-      const id = req.params.id;
-      const query = {_id: new ObjectId(id)};
-      const result = await toysCollection.deleteOne(query);
-      res.send(result)
+    // ascending users data
+    app.get("/userToyByAscending", async (req, res) => {
+      try {
+        let query = {};
+        if (req.query?.email) {
+          query = { email: req.query.email }
+        }
+        const result = await toysCollection.find(query).sort({ price: 1 }).toArray();
+        res.send(result);
+      } catch (error) {
+        res.send(error)
+      }
+    });
+
+    // descending users data
+    app.get("/userToyByDescending", async (req, res) => {
+      try {
+        let query = {};
+        if (req.query?.email) {
+          query = { email: req.query.email }
+        }
+        const result = await toysCollection.find(query).sort({ price: -1 }).toArray();
+        res.send(result);
+      } catch (error) {
+        res.send(error)
+      }
+    });
+
+    // update user data
+    app.patch("/userToys/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const updateToy = req.body;
+        const filter = { _id: new ObjectId(id) };
+        const updatedToyStatus = {
+          $set: {
+            price: updateToy.price,
+            quantity: updateToy.quantity,
+            detail: updateToy.detail
+          }
+        }
+        const result = await toysCollection.updateOne(filter, updatedToyStatus);
+        res.send(result)
+      } catch (error) {
+        res.send(error)
+      }
+    });
+
+    // delete user data
+    app.delete("/userToys/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await toysCollection.deleteOne(query);
+        res.send(result)
+      } catch (error) {
+        res.send(error)
+      }
     })
 
 
@@ -91,11 +170,10 @@ async function run() {
 run().catch(console.dir);
 
 
-
-app.get("/", (req, res)=> {
-    res.send(" KiddieCorner server is Running");
+app.get("/", (req, res) => {
+  res.send(" KiddieCorner server is Running");
 });
 
-app.listen(port, ()=> {
-    console.log("Server running on port", port);
+app.listen(port, () => {
+  console.log("Server running on port", port);
 })
